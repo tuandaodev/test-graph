@@ -114,7 +114,7 @@ def accuracy(output, labels):
 
 def load_DBLP(dataset="DBLP", mode='s'):
     print('Loading {} dataset...'.format(dataset))
-    dataFile = '/content/drive/MyDrive/Anomaly_detection_GNN/code/Anomaly_detection_AdaGNN/data/' + dataset + '/' + dataset + '.mat'
+    dataFile = '/content/test-graph/data/' + dataset + '/' + dataset + '.mat'
     data = scio.loadmat(dataFile)
     labels, features = data['label'], data['features'].astype(float)
     N = features.shape[0]
@@ -135,7 +135,7 @@ def load_DBLP(dataset="DBLP", mode='s'):
 
 def load_Yelp(dataset="Yelp", mode='s'):
     print('Loading {} dataset...'.format(dataset))
-    dataFile = '/content/drive/MyDrive/Anomaly_detection_GNN/code/Anomaly_detection_AdaGNN/data/' + dataset + '/' + dataset + '.mat'
+    dataFile = '/content/test-graph/data/' + dataset + '/' + dataset + '.mat'
     data = scio.loadmat(dataFile)
     labels = np.transpose(data['label'])
     labels = encode_onehot(list(labels[:, 0]))
@@ -150,7 +150,7 @@ def load_Yelp(dataset="Yelp", mode='s'):
 
 def load_Elliptic(dataset="Elliptic", mode='s'):
     print('Loading {} dataset...'.format(dataset))
-    dataFile = '/content/drive/MyDrive/Anomaly_detection_GNN/code/Anomaly_detection_AdaGNN/data/' + dataset + '/' + dataset + '.mat'
+    dataFile = '/content/test-graph/data/' + dataset + '/' + dataset + '.mat'
     data = scio.loadmat(dataFile)
     edges = data['edge_index']
     labels = np.transpose(data['labels'])
