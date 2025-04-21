@@ -41,7 +41,7 @@ np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 
 if args.dataset == 'video':
-    video_path = 'data/video/VIRAT_S_010204_05_000856_000890.mp4'
+    video_path = '/content/test-graph/data/video/VIRAT_S_010204_05_000856_000890.mp4'
     adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_video_data(video_path, args.mode)
 elif args.dataset in ['DBLP']:
     adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_DBLP(args.dataset, args.mode)

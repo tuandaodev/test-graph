@@ -122,11 +122,16 @@ def split_data(features, labels, adj):
     minority_indices = np.where(labels[:, minority_label] == 1)[0]
     majority_indices = np.where(labels[:, majority_label] == 1)[0]
 
-    minority_num = len(minority_indices)
-    majority_num = minority_num * 2
+    # Calculate sample sizes with a minimum of 1 sample
+    minority_num = min(len(minority_indices), max(1, len(minority_indices)))
+    majority_num = min(len(majority_indices), max(1, minority_num * 2))
+    
+    # Allow replacement if we have too few samples
+    minority_replace = len(minority_indices) < minority_num
+    majority_replace = len(majority_indices) < majority_num
 
-    minority_indices = np.random.choice(minority_indices, size=minority_num, replace=False)
-    majority_indices = np.random.choice(majority_indices, size=majority_num, replace=False)
+    minority_indices = np.random.choice(minority_indices, size=minority_num, replace=minority_replace)
+    majority_indices = np.random.choice(majority_indices, size=majority_num, replace=majority_replace)
 
     selected_indices = np.concatenate([minority_indices, majority_indices])
 
