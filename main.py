@@ -6,7 +6,7 @@ import time
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from utils import accuracy, load_DBLP, load_Yelp, load_Elliptic
+from utils import accuracy, load_DBLP, load_Yelp, load_Elliptic, load_video_data
 from adagnn import AdaGNN
 from pre_train_2_layer import pre_train
 import matplotlib.pyplot as plt
