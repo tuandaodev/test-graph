@@ -5,6 +5,10 @@ import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score, average_precision_score
 from scipy.sparse.linalg import inv
 from sklearn.model_selection import train_test_split
+import cv2
+import torch.nn as nn
+import torchvision.models as models
+import torchvision.transforms as transforms
 
 def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     """Convert a scipy sparse matrix to a torch sparse tensor."""
@@ -31,6 +35,84 @@ def normalize_features(mx):
     r_mat_inv = sp.diags(r_inv)
     mx = r_mat_inv.dot(mx)
     return mx
+
+def extract_frames(video_path, num_frames=30):
+    """Extract frames from video file"""
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    step = total_frames // num_frames
+    
+    for i in range(0, total_frames, step):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+        ret, frame = cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frames.append(frame)
+            if len(frames) == num_frames:
+                break
+    
+    cap.release()
+    return np.array(frames)
+
+def create_scene_graph(frames):
+    """Create scene graph from video frames"""
+    # Initialize ResNet model for feature extraction
+    model = models.resnet50(pretrained=True)
+    model = nn.Sequential(*list(model.children())[:-1])  # Remove last FC layer
+    model.eval()
+    
+    # Preprocessing
+    transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    
+    # Extract features for each frame
+    features = []
+    for frame in frames:
+        frame_tensor = transform(frame).unsqueeze(0)
+        with torch.no_grad():
+            feature = model(frame_tensor)
+        features.append(feature.squeeze().numpy())
+    
+    features = np.array(features)
+    
+    # Create adjacency matrix based on feature similarity
+    adj_matrix = np.zeros((len(frames), len(frames)))
+    for i in range(len(frames)):
+        for j in range(len(frames)):
+            if i != j:
+                similarity = np.dot(features[i], features[j]) / (np.linalg.norm(features[i]) * np.linalg.norm(features[j]))
+                adj_matrix[i, j] = similarity
+    
+    return features, sp.csr_matrix(adj_matrix)
+
+def load_video_data(video_path, mode='s'):
+    """Load video data and create scene graph"""
+    print('Loading video data from {}...'.format(video_path))
+    
+    # Extract frames from video
+    frames = extract_frames(video_path)
+    
+    # Create scene graph
+    features, adj = create_scene_graph(frames)
+    
+    # Create dummy labels (can be modified based on specific task)
+    labels = np.zeros((len(frames), 2))
+    labels[:len(frames)//2, 0] = 1  # First half normal
+    labels[len(frames)//2:, 1] = 1  # Second half anomaly
+    
+    # Convert to proper format
+    adj = compute_laplacian(adj, mode)
+    idx_train, idx_test, idx_val, features, labels, adj, minority_label = split_data(features, labels, adj)
+    
+    gamma = 0.9
+    patience = 10
+    
+    return adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label
 
 def split_data(features, labels, adj):
     label_counts = np.sum(labels, axis=0)
@@ -82,7 +164,6 @@ def encode_onehot(labels):
     labels_onehot = np.array(list(map(classes_dict.get, labels)), dtype=np.int32)
     return labels_onehot
 
-
 def compute_laplacian(adj, mode):
     adj = adj.maximum(adj.T)  # Element-wise maximum to make the matrix symmetric
     adj = adj + sp.eye(adj.shape[0])  # Add self-loops by adding identity matrix
@@ -124,7 +205,6 @@ def load_DBLP(dataset="DBLP", mode='s'):
 
     adj = sp.csr_matrix(Network.toarray()[:, :])
     labels = encode_onehot(list(data['label'][:, 0]))
-    # features = features.toarray()[:, :]
     print('Dataset has {} nodes, {} features.'.format(adj.shape[0], features.shape[1]))
     adj = compute_laplacian(adj,mode)
     idx_train, idx_test, idx_val, features, labels, adj, minority_label = split_data(features, labels,adj)
@@ -158,20 +238,15 @@ def load_Elliptic(dataset="Elliptic", mode='s'):
     feat_data = data['features']
     num_nodes = 46564
     num_samples = int(num_nodes * 1)
-    # Randomly select the samples
     sampled_indices = np.random.choice(num_nodes, num_samples, replace=False)
     sampled_labels = labels[sampled_indices]
     sampled_feat_data = feat_data[sampled_indices]
-    # Create the row indices, column indices, and values for the sparse matrix
     row_indices = np.repeat(sampled_indices, sampled_feat_data.shape[1])
     col_indices = np.tile(np.arange(sampled_feat_data.shape[1]), num_samples)
     values = sampled_feat_data.flatten()
-    # Create the sparse matrix for features
     features_sparse = sp.csr_matrix((values, (row_indices, col_indices)), shape=(num_nodes, sampled_feat_data.shape[1]))
     features = torch.FloatTensor(features_sparse.toarray())
-    # Initialize the adjacency matrix
     adj = sp.csr_matrix((np.ones(edges.shape[1]), edges), shape=(num_nodes, num_nodes))
-    # Convert the adjacency matrix to CSC format
     adj = adj.tocsc()
     print('Dataset has {} nodes, {} features, {} labels.'.format(adj.shape[0], features.shape[1], labels.shape))
     adj = compute_laplacian(adj,mode)
@@ -180,4 +255,3 @@ def load_Elliptic(dataset="Elliptic", mode='s'):
     patience = 10
 
     return adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label
-

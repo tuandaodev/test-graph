@@ -19,7 +19,7 @@ parser.add_argument('--fastmode', action='store_true', default=False,
 parser.add_argument('--layers', type=int, default=8,
                     help='Layer number of AdaGNN model.')
 parser.add_argument('--dataset', type=str, 
-                    help='dataset from {"DBLP", "Yelp"}.')
+                    help='dataset from {"DBLP", "Yelp", "video"}.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=300,
                     help='Number of epochs to train.')
@@ -40,14 +40,17 @@ args = parser.parse_args()
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 
-if args.dataset in ['DBLP']:
+if args.dataset == 'video':
+    video_path = 'data/video/VIRAT_S_010204_05_000856_000890.mp4'
+    adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_video_data(video_path, args.mode)
+elif args.dataset in ['DBLP']:
     adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_DBLP(args.dataset, args.mode)
 elif args.dataset in ['Yelp', 'Amazon']:
-  adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_Yelp(args.dataset, args.mode)
+    adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_Yelp(args.dataset, args.mode)
 elif args.dataset in ['Elliptic']:
-  adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_Elliptic(args.dataset, args.mode)
+    adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_Elliptic(args.dataset, args.mode)
 else:
-    print('No such dataset supported !')
+    print('No such dataset supported!')
     assert 0==1
 
 model = AdaGNN(diag_dimension=features.shape[0], nfeat=features.shape[1],
