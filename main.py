@@ -42,6 +42,16 @@ torch.manual_seed(args.seed)
 
 if args.dataset == 'video':
     video_path = '/content/test-graph/data/video/VIRAT_S_010204_05_000856_000890.mp4'
+    # Create scene graph visualizations
+    from scene_graph_vis import process_video
+    print("Generating scene graph visualizations...")
+    output_dir = "scene_graph_output"
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+    process_video(video_path, output_dir)
+    print(f"Scene graph visualizations saved to {output_dir}")
+    
+    # Load video data for anomaly detection
     adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_video_data(video_path, args.mode)
 elif args.dataset in ['DBLP']:
     adj, features, labels, idx_train, idx_val, idx_test, gamma, patience, minority_label = load_DBLP(args.dataset, args.mode)

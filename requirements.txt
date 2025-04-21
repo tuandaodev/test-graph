@@ -86,3 +86,6 @@ wcwidth>=0.2.5
 Werkzeug>=2.0.0
 wrapt>=1.14.0
 opencv-python>=4.8.0
+ultralytics>=8.0.0
+networkx>=3.0
+matplotlib>=3.5.0
